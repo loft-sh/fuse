@@ -107,7 +107,7 @@ func mount(dir string, conf *mountConfig, ready chan<- struct{}, errp *error) (f
 	go lineLogger(&wg, "mount helper output", neverIgnoreLine, stdout)
 	go lineLogger(&wg, "mount helper error", handleFusermountStderr(helperErrCh), stderr)
 	wg.Wait()
-	if err := cmd.Wait(); err != nil {
+	if err := cmd.Wait(); err != nil && err.Error() != errNoChildProcesses && err.Error() != "waitid: no child processes" {
 		// see if we have a better error to report
 		select {
 		case helperErr := <-helperErrCh:
