@@ -63,6 +63,20 @@ func mount(dir string, conf *mountConfig, ready chan<- struct{}, errp *error) (f
 	// linux mount is never delayed
 	close(ready)
 
+	// Like libfuse, mount directly when we are allowed to and only use the
+	// setuid helper otherwise. The helper can be confined by the host, e.g.
+	// Ubuntu's fusermount3 AppArmor profile limits where it may mount.
+	f, err := mountDirect(dir, conf)
+	if err == nil {
+		return f, nil
+	}
+	if err != errDirectMountNotPermitted {
+		return nil, err
+	}
+	return mountHelper(dir, conf)
+}
+
+func mountHelper(dir string, conf *mountConfig) (fusefd *os.File, err error) {
 	fds, err := syscall.Socketpair(syscall.AF_FILE, syscall.SOCK_STREAM, 0)
 	if err != nil {
 		return nil, fmt.Errorf("socketpair error: %v", err)
