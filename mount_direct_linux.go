@@ -3,6 +3,7 @@ package fuse
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"syscall"
@@ -55,6 +56,11 @@ func mountDirect(dir string, conf *mountConfig) (*os.File, error) {
 		}
 		return nil, fmt.Errorf("stat mountpoint %s: %v", dir, err)
 	}
+	if _, allowNonEmpty := conf.options["nonempty"]; !allowNonEmpty {
+		if err := checkMountpointEmpty(dir); err != nil {
+			return nil, err
+		}
+	}
 
 	f, err := os.OpenFile("/dev/fuse", os.O_RDWR, 0)
 	if err != nil {
@@ -78,4 +84,22 @@ func mountDirect(dir string, conf *mountConfig) (*os.File, error) {
 		return nil, fmt.Errorf("mount %s: %v", dir, err)
 	}
 	return f, nil
+}
+
+func checkMountpointEmpty(dir string) error {
+	f, err := os.Open(dir)
+	if err != nil {
+		return fmt.Errorf("open mountpoint %s: %v", dir, err)
+	}
+	defer f.Close()
+
+	_, err = f.Readdirnames(1)
+	switch {
+	case errors.Is(err, io.EOF):
+		return nil
+	case err == nil:
+		return fmt.Errorf("mountpoint is not empty: %s", dir)
+	default:
+		return fmt.Errorf("read mountpoint %s: %v", dir, err)
+	}
 }
