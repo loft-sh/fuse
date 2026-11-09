@@ -9,7 +9,7 @@ import (
 func unmount(dir string) error {
 	cmd := exec.Command("fusermount", "-u", dir)
 	output, err := cmd.CombinedOutput()
-	if err != nil {
+	if err != nil && err.Error() != errNoChildProcesses && err.Error() != "waitid: no child processes" {
 		if len(output) > 0 {
 			output = bytes.TrimRight(output, "\n")
 			msg := err.Error() + ": " + string(output)

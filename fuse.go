@@ -341,6 +341,9 @@ const (
 	ERANGE  = Errno(syscall.ERANGE)
 	ENOTSUP = Errno(syscall.ENOTSUP)
 	EEXIST  = Errno(syscall.EEXIST)
+
+	// Nestybox extension
+	EACCES = Errno(syscall.EACCES)
 )
 
 // DefaultErrno is the errno used when error returned does not
@@ -355,6 +358,8 @@ var errnoNames = map[Errno]string{
 	EPERM:  "EPERM",
 	EINTR:  "EINTR",
 	EEXIST: "EEXIST",
+	// Nestybox extension
+	EACCES: "EACCES",
 }
 
 // Errno implements Error and ErrorNumber using a syscall.Errno.
@@ -1333,7 +1338,7 @@ type Attr struct {
 }
 
 func (a Attr) String() string {
-	return fmt.Sprintf("valid=%v ino=%v size=%d mode=%v", a.Valid, a.Inode, a.Size, a.Mode)
+	return fmt.Sprintf("valid=%v ino=%v size=%d mode=%v uid=%d gid=%d", a.Valid, a.Inode, a.Size, a.Mode, a.Uid, a.Gid)
 }
 
 func unix(t time.Time) (sec uint64, nsec uint32) {
