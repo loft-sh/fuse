@@ -34,7 +34,7 @@ func directMountArgs(conf *mountConfig) (source, fstype string, flags uintptr, d
 		case "allow_other", "default_permissions":
 			data = append(data, k)
 		case "nonempty":
-			// a fusermount check, the kernel mounts over anything
+			// Enforced by mount before selecting the direct or helper path.
 		default:
 			return "", "", 0, nil, false
 		}
