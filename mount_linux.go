@@ -2,6 +2,7 @@ package fuse
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"os"
@@ -63,6 +64,12 @@ func mount(dir string, conf *mountConfig, ready chan<- struct{}, errp *error) (f
 	// linux mount is never delayed
 	close(ready)
 
+	if _, allowNonEmpty := conf.options["nonempty"]; !allowNonEmpty {
+		if err := checkMountpointEmpty(dir); err != nil {
+			return nil, err
+		}
+	}
+
 	// Like libfuse, mount directly when we are allowed to and only use the
 	// setuid helper otherwise. The helper can be confined by the host, e.g.
 	// Ubuntu's fusermount3 AppArmor profile limits where it may mount.
@@ -74,6 +81,26 @@ func mount(dir string, conf *mountConfig, ready chan<- struct{}, errp *error) (f
 		return nil, err
 	}
 	return mountHelper(dir, conf)
+}
+
+func checkMountpointEmpty(dir string) error {
+	f, err := os.OpenFile(dir, os.O_RDONLY|syscall.O_DIRECTORY, 0)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return &MountpointDoesNotExistError{Path: dir}
+		}
+		return fmt.Errorf("open mountpoint %s: %v", dir, err)
+	}
+	defer f.Close()
+
+	_, err = f.Readdirnames(1)
+	if err == io.EOF {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("read mountpoint %s: %v", dir, err)
+	}
+	return fmt.Errorf("mountpoint is not empty: %s", dir)
 }
 
 func mountHelper(dir string, conf *mountConfig) (fusefd *os.File, err error) {

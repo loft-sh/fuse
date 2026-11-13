@@ -42,6 +42,13 @@ func TestDirectMountArgs(t *testing.T) {
 			name:    "allow_root needs the helper",
 			options: []MountOption{AllowRoot()},
 		},
+		{
+			name:    "nonempty is userspace-only",
+			options: []MountOption{AllowNonEmptyMount()},
+			source:  "fuse", fstype: "fuse",
+			flags: syscall.MS_NOSUID | syscall.MS_NODEV,
+			ok:    true,
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			conf := mountConfig{options: make(map[string]string)}
